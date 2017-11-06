@@ -128,3 +128,4 @@ typings/
 .env
 /dist/
 /db.json
+/merc-as-firebase-adminsdk-8eflz-052bdbb34e.json

@@ -1,12 +1,13 @@
 import express from 'express';
 import path from 'path';
-import favicon from 'serve-favicon';
 import logger from 'morgan';
 import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
+import morgan from 'morgan';
 import controllerSet from './controllerSet';
 
 import index from './routes/index';
+import validateUserToken from './routes/api/validateUserToken';
 
 const app = express();
 
@@ -16,15 +17,40 @@ app.controllers = controllerSet;
 app.set('./views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
-// uncomment after placing your favicon in /public
-//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+if(process.env.APP === 'dev') {
+    app.use(morgan('combined', ':method :url :status :res[content-length] - :response-time ms'));
+}
+
+app.use(function (req, res, next) {
+
+    // Website you wish to allow to connect
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8080');
+
+    // Request methods you wish to allow
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+    // Request headers you wish to allow
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+
+    // Set to true if you need the website to include cookies in the requests sent
+    // to the API (e.g. in case you use sessions)
+    res.setHeader('Access-Control-Allow-Credentials', true);
+
+    if (req.method === 'OPTIONS') {
+        res.sendStatus(200);
+    } else {
+        // Pass to next layer of middleware
+        next();
+    }
+});
 
 app.use('/', index);
+app.use('/api', validateUserToken);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
@@ -40,7 +66,7 @@ app.use(function (err, req, res, next) {
     res.locals.error = req.app.get('env') === 'development' ? err : {};
 
     // render the error page
-    res.status(err.status || 500);
+    res.sendStatus(err.status || 500);
     res.render('error');
 });
 
